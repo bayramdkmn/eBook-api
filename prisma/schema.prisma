@@ -32,6 +32,7 @@ model UserPosts {
   id        String   @id @unique @default(cuid())
   title     String
   content   String
+  image     String?
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
@@ -43,7 +44,6 @@ model Book {
   author       String
   genre        String
   description  String
-  isPopular    Boolean       @default(false)
   ownerId      String
   owner        User          @relation(fields: [ownerId], references: [id])
   swapRequests SwapRequest[]
@@ -65,8 +65,11 @@ model Message {
   id         String   @id @unique @default(cuid())
   senderId   String
   receiverId String
-  content    String
+  text       String
+  image      String?
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  seen       Boolean
   sender     User     @relation("MessagesSent", fields: [senderId], references: [id])
   receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id])
 }
