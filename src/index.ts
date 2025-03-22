@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import UserRouter from "./routes/user.route"
 import swapBooksRouter from "./routes/swapBook.route"
+import { authenticateToken } from './middlewares/authenticateToken';
 
 const app = express();
 const cors = require('cors');
@@ -16,6 +17,7 @@ const server = http.createServer(app);
 async function main() {
   app.use('/api/user', UserRouter);
   app.use('/api/swapRequest', swapBooksRouter)
+  app.use('/api/readingBooks',swapBooksRouter)
   // app.use('/api/event', EventRouter);
   // app.use('/api/messages', MessagesRouter);
 

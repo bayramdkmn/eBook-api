@@ -1,24 +1,36 @@
 import express from 'express';
+import { Request, Response, NextFunction } from 'express';
 import UserController from '../controllers/user.controller';
+
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 const router = express.Router();
 
 
-// her fotoğraf için ayrı istek discord usuluü
-const authenticateToken = (req: any, res: any, next: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+// const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+//   const authHeader = req.headers['authorization'] as string;
 
-  if (token == null) return res.sendStatus(401);
+//   // Authorization header'ı yoksa 401 hatası döner
+//   if (!authHeader) return res.sendStatus(401); 
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-};
+//   // Token'ı "Bearer" ön ekinden ayırıyoruz
+//   const token = authHeader.split(' ')[1];
+
+//   // Token yoksa 401 döner
+//   if (!token) return res.sendStatus(401);
+
+//   // Token'ı doğruluyoruz
+//   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+//       if (err) return res.sendStatus(403);  // Eğer doğrulama hatalıysa 403 döner
+
+//       // Kullanıcı bilgilerini req.user'a ekliyoruz
+//       req.user?=user;
+
+//       // İşlem başarılıysa next() ile devam ediyoruz
+//       next();
+//   });
+// };
 
 
 router.post("/",UserController.createUser)

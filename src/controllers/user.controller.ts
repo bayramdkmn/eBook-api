@@ -49,17 +49,24 @@ async function loginUser(req: Request, res: Response) {
         console.log(user);
 
         if (user && (await bcrypt.compare(password, user.password))) {
-            console.log("token");
-            const token = jwt.sign({ userId: user.id }, JWT_SECRET);
-            res.json({ token });
+            console.log("Token oluşturuluyor");
+
+            // Token oluşturuluyor ve userId, email gibi bilgileri payload'a ekliyoruz
+            const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+
+            // `requesterId`'yi ve token'ı döndürüyoruz
+            res.json({
+                token,
+                requesterId: user.id  // Burada user.id'yi `requesterId` olarak döndürüyoruz
+            });
         } else {
             res.status(401).json({ error: 'Invalid credentials' });
         }
     } catch (err: any) {
         console.error(err);
+        res.status(500).json({ error: 'Something went wrong' });
     }
 }
-
 
 
 export default {
