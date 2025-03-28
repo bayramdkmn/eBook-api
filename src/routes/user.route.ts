@@ -35,6 +35,11 @@ const router = express.Router();
 
 router.post("/",UserController.createUser)
 router.post("/login",UserController.loginUser)
+router.post("/sendMail",UserController.sendMail)
+router.post("/checkCode",UserController.checkCode)
+router.post("/resetPassword",UserController.resetPassword)
+
+
 
 
 // router.post(
