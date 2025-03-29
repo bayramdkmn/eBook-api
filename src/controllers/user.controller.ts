@@ -3,8 +3,13 @@ import prisma from '../lib/prisma';
 const bcrypt = require('bcrypt');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const jwt = require('jsonwebtoken');
+const mailjet = require ('node-mailjet')
+const otpStorage: { [email: string]: string } = {};
 
-
+const mj = mailjet.apiConnect(
+    '50431a90b75721edc308d1b596a53152', 
+    'd3e6ae20ba56ec25aa2b1f3e1288ad6a'
+  );
 
 async function createUser(req: Request, res: Response){
     try {
@@ -67,9 +72,100 @@ async function loginUser(req: Request, res: Response) {
         res.status(500).json({ error: 'Something went wrong' });
     }
 }
+async function sendMail(req: Request, res: Response) {
+    try {
+        const email  = req.body.email;
+        console.log(email);
+        const generateRandomCode = (length = 6) => (Math.floor(Math.random() * Math.pow(10, length))).toString().padStart(length, '0');
+        const otpCode = generateRandomCode(6);    
+        console.log(otpCode)
+        otpStorage[email] = otpCode;
+      
+        setTimeout(() => {
+          delete otpStorage[email];
+          console.log(`OTP for ${email} expired and removed from storage.`);
+        }, 180000); 
+        
+        const sent = mj.post("send", { 'version': 'v3.1' }).request({
+          "Messages": [
+              {
+                  "From": {
+                      "Email": "eBookResett@gmail.com",
+                      "Name": "eBook"
+                  },
+                  "To": [
+                      {
+                          "Email": email,
+                      }
+                  ],
+                  "Subject": "Reset Password",
+                  "HTMLPart": `
+                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px; padding: 20px;">
+                          <h3 style="color: #333;">Merhaba,</h3>
+                          <p style="color: #555;">Bu e-posta, şifrenizi sıfırlamanız için gönderilmiştir. Aşağıdaki kodu kullanarak işleminizi tamamlayabilirsiniz:</p>
+                          <div style="font-size: 24px; font-weight: bold; color: #007BFF; text-align: center; margin: 20px 0;">${otpCode}</div>
+                          <p style="color: #555;">Bu kod yalnızca bir kez kullanılabilir ve 3 dakika içinde geçerliliğini yitirecektir.</p>
+                          <div style="font-size: 12px; color: #888; text-align: center; margin-top: 20px;">
+                              &copy; 2024 eBook. Tüm hakları saklıdır.
+                          </div>
+                      </div>
+                  `,
+              }
+          ]
+      });
+      
+    //   sent.then((result: any) => {
+    //     console.log('Email sent:', result.body);
+    //     res.status(200).json({ message: 'Email sent' });
+    //   });
 
+      sent.then((result: any) => {
+        console.log('Email sent:', result.body);
+        res.status(200).json({ message: 'Email sent' });
+      }).catch((err: any) => {
+        console.error('Error:', err.statusCode);
+        res.status(400).json({ message: "Email couldn't be sent", error: err.message });
+      }); 
+      
+    } catch (err: any) {
+        console.error('Error:', err);
+        res.status(400).json({ error: "Email couldn't be sent" });
+        
+    }
+}
+
+async function checkCode(req: Request, res: Response) {
+    const email = req.body.email;
+    const code = req.body.code;
+
+    const storedCode = otpStorage[email]; 
+    if (storedCode && storedCode === code) {
+      res.status(200).send({ message: 'Code correct' });
+      delete otpStorage[email]; 
+      console.log('Code verified successfully!');
+    } else {
+      console.log('Invalid code.');
+      res.status(500).json({ message: 'Invalid code' });
+    }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+    const { email, newPassword } = req.body;
+  
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+  
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword },
+    });
+  
+    res.json({ message: "Şifreniz başarıyla güncellendi." });
+  }
 
 export default {
     createUser,
-    loginUser
+    loginUser,
+    sendMail,
+    checkCode,
+    resetPassword
 }
