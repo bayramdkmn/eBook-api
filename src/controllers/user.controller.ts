@@ -162,10 +162,59 @@ export async function resetPassword(req: Request, res: Response) {
     res.json({ message: "Şifreniz başarıyla güncellendi." });
   }
 
+
+async function sendReport(req: Request, res: Response) {
+    try {
+      const { email, problem, type } = req.body;
+  
+      const sent = mj.post("send", { version: "v3.1" }).request({
+        Messages: [
+          {
+            From: {
+              Email: "eBookResett@gmail.com",
+              Name: "eBook"
+            },
+            To: [
+              {
+                Email: "gunesbolcelik@outlook.com"
+              }
+            ],
+            Subject: `Complaint Type: ${type}`,
+            HTMLPart: `
+              <div>
+                <p><strong>Sender Email:</strong> ${email}</p>
+                <p><strong>${type}:</strong></p>
+                <p>${problem}</p>
+              </div>
+            `,
+            TrackOpens: "disabled",
+            TrackClicks: "disabled"
+          }
+        ]
+      });
+         
+  
+      sent.then((result: any) => {
+        console.log('Email sent:', result.body);
+        res.status(200).json({ message: 'Email sent' });
+      }).catch((err: any) => {
+        console.error('Error:', err.statusCode);
+        res.status(400).json({ message: "Email couldn't be sent", error: err.message });
+      }); 
+      
+    } catch (err: any) {
+        console.error('Error:', err);
+        res.status(400).json({ error: "Email couldn't be sent" });
+        
+    }
+  }
+  
+
 export default {
     createUser,
     loginUser,
     sendMail,
     checkCode,
-    resetPassword
+    resetPassword,
+    sendReport
 }

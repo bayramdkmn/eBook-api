@@ -38,6 +38,8 @@ router.post("/login",UserController.loginUser)
 router.post("/sendMail",UserController.sendMail)
 router.post("/checkCode",UserController.checkCode)
 router.post("/resetPassword",UserController.resetPassword)
+router.post("/sendReport",UserController.sendReport)
+
 
 
 
