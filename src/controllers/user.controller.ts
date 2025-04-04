@@ -56,10 +56,8 @@ async function loginUser(req: Request, res: Response) {
         if (user && (await bcrypt.compare(password, user.password))) {
             console.log("Token oluşturuluyor");
 
-            // Token oluşturuluyor ve userId, email gibi bilgileri payload'a ekliyoruz
             const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
-
-            // `requesterId`'yi ve token'ı döndürüyoruz
+            console.log(token);
             res.json({
                 token,
                 requesterId: user.id  // Burada user.id'yi `requesterId` olarak döndürüyoruz

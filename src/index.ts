@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import UserRouter from "./routes/user.route"
 import swapBooksRouter from "./routes/swapBook.route"
+import followRouter from "./routes/follow.route"
+import userPostRouter from "./routes/userPost.route"
 import { authenticateToken } from './middlewares/authenticateToken';
 
 const app = express();
@@ -18,6 +20,8 @@ async function main() {
   app.use('/api/user', UserRouter);
   app.use('/api/swapRequest', swapBooksRouter)
   app.use('/api/readingBooks',swapBooksRouter)
+  app.use('/api/userPosts', userPostRouter); 
+  app.use('/api/follow', followRouter);
   // app.use('/api/event', EventRouter);
   // app.use('/api/messages', MessagesRouter);
 

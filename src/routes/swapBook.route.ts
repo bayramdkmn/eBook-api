@@ -7,15 +7,9 @@ const router = express.Router();
 
 
 
-// Takas taleplerini listelemek için GET isteği
 router.get('/', BooksController.getSwapBook);
-
-// Yeni takas talebi oluşturmak için POST ist"eği
-router.post('/createSwap',authenticateToken,BooksController.createSwapRequest);
-
-// Takas talebinin durumunu güncellemek için PUT isteği
+router.post('/createSwap', authenticateToken, BooksController.createSwapRequest);
 router.put('/:swapRequestId', BooksController.updateSwapRequestStatus);
-
-router.post('/addReadingBook',authenticateToken,BooksController.addReadingBook)
+router.post('/addReadingBook', authenticateToken, BooksController.addReadingBook)
 
 export default router;

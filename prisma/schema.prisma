@@ -19,18 +19,20 @@ model User {
   gender                String
   phone                 String        @unique
   address               String?
-  avatar                String? // Kullanıcının profil fotoğrafı (isteğe bağlı)
+  avatar                String?
   is_validated          Boolean       @default(false)
-  posts                 UserPosts[]
+  posts                 Posts[]
   messagesSent          Message[]     @relation("MessagesSent")
   messagesReceived      Message[]     @relation("MessagesReceived")
   swapRequestsRequester SwapRequest[] @relation("Requester")
   books                 Book[]
-  readBooks             ReadBook[] // Kullanıcının okuduğu kitaplar
-  wishList              WishList[] // Kullanıcının istek listesi
+  readBooks             ReadBook[]
+  wishList              WishList[]
+  following             Follow[]      @relation("FollowingRelation")
+  followers             Follow[]      @relation("FollowerRelation")
 }
 
-model UserPosts {
+model Posts {
   id        String   @id @unique @default(cuid())
   title     String
   content   String
@@ -64,11 +66,11 @@ model Book {
   author       String
   genre        String
   description  String
-  image        String? // Kitap resmi için opsiyonel bir alan
-  swapRequests SwapRequest[] // Kitap takas talepleriyle ilişkili
-  users        User[] // Birden fazla kullanıcı tarafından eklenebilir
-  readBooks    ReadBook[] // Okuma listesi ile ilişki
-  wishLists    WishList[] // İstek listesi ile ilişki
+  image        String?
+  swapRequests SwapRequest[]
+  users        User[]
+  readBooks    ReadBook[]
+  wishLists    WishList[]
 }
 
 model SwapRequest {
@@ -76,7 +78,7 @@ model SwapRequest {
   requesterId   String
   offeredBookId String
   content       String?
-  status        String // Can be 'pending', 'accepted', 'rejected'
+  status        String
   createdAt     DateTime @default(now())
   requester     User     @relation("Requester", fields: [requesterId], references: [id])
   offeredBook   Book     @relation(fields: [offeredBookId], references: [id])
@@ -93,4 +95,13 @@ model Message {
   seen       Boolean
   sender     User     @relation("MessagesSent", fields: [senderId], references: [id])
   receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id])
+}
+
+model Follow {
+  id          String @id @default(uuid())
+  followerId  String
+  followingId String
+
+  follower  User @relation("FollowerRelation", fields: [followerId], references: [id])
+  following User @relation("FollowingRelation", fields: [followingId], references: [id])
 }
