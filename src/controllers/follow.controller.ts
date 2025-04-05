@@ -23,6 +23,7 @@ export const getDiscoverFollow = async (req: Request, res: Response): Promise<vo
       include: {
         user: {
           select: {
+            id:true,
             name: true,
             surname: true,
             avatar: true,
@@ -199,6 +200,51 @@ export const isFollowing = async (req: Request, res: Response): Promise<void> =>
       res.status(200).json({ isFollowing: !!follow });
     } catch (err) {
       console.error("Takip kontrolü hatası:", err);
+      res.status(500).json({ error: "Sunucu hatası" });
+    }
+  };
+  
+export const getSuggestedUsers = async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.userId;
+  
+    if (!userId) {
+      res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
+      return;
+    }
+  
+    try {
+      const followed = await prisma.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      });
+  
+      const followedIds = followed.map(f => f.followingId);
+      followedIds.push(userId); // kendini de hariç tut
+  
+      // Önerilecek aday sayısını bul
+      const totalCount = await prisma.user.count({
+        where: { id: { notIn: followedIds } },
+      });
+  
+      const randomSkip = Math.floor(Math.random() * Math.max(totalCount - 5, 0)); // rastgele başlangıç
+  
+      const suggestedUsers = await prisma.user.findMany({
+        where: {
+          id: { notIn: followedIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          avatar: true,
+        },
+        skip: randomSkip,
+        take: 5,
+      });
+  
+      res.status(200).json(suggestedUsers);
+    } catch (error) {
+      console.error("Önerilen kullanıcılar alınırken hata:", error);
       res.status(500).json({ error: "Sunucu hatası" });
     }
   };

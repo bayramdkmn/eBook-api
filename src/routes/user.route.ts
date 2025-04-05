@@ -39,7 +39,7 @@ router.post("/sendMail",UserController.sendMail)
 router.post("/checkCode",UserController.checkCode)
 router.post("/resetPassword",UserController.resetPassword)
 router.post("/sendReport",UserController.sendReport)
-
+router.get("/getUserById/:id", UserController.getUserById);
 
 
 

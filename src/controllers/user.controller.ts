@@ -70,6 +70,7 @@ async function loginUser(req: Request, res: Response) {
         res.status(500).json({ error: 'Something went wrong' });
     }
 }
+
 async function sendMail(req: Request, res: Response) {
     try {
         const email  = req.body.email;
@@ -158,8 +159,7 @@ export async function resetPassword(req: Request, res: Response) {
     });
   
     res.json({ message: "Şifreniz başarıyla güncellendi." });
-  }
-
+}
 
 async function sendReport(req: Request, res: Response) {
     try {
@@ -205,14 +205,40 @@ async function sendReport(req: Request, res: Response) {
         res.status(400).json({ error: "Email couldn't be sent" });
         
     }
-  }
-  
+}
 
+async function getUserById(req: Request, res: Response) {
+    const userId = req.params.id;
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                surname: true,
+                email: true,
+                address: true,
+                phone: true,
+                gender: true,
+                username: true,
+            }
+        });
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+  
 export default {
     createUser,
     loginUser,
     sendMail,
     checkCode,
+    getUserById,
     resetPassword,
     sendReport
 }
