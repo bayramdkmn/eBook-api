@@ -232,6 +232,57 @@ async function getUserById(req: Request, res: Response) {
         res.status(500).json({ error: 'Internal server error' });
     }
 }
+
+async function updateUserProfile(req: Request, res: Response) {
+  const { id } = req.params;
+  const { name, surname, email, address, phone, gender, username } = req.body;
+
+  try {
+      const updatedUser = await prisma.user.update({
+          where: { id },
+          data: { name, surname, email, address, phone, gender, username },
+      });
+
+      res.status(200).json(updatedUser);
+  } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function updatePassword(req: Request, res: Response) {
+  const { id } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      res.status(401).json({ error: "Current password is incorrect" });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+
+
   
 export default {
     createUser,
@@ -240,5 +291,7 @@ export default {
     checkCode,
     getUserById,
     resetPassword,
-    sendReport
+    sendReport,
+    updateUserProfile,
+    updatePassword
 }
