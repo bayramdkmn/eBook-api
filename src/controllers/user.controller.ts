@@ -242,7 +242,6 @@ async function updateUserProfile(req: Request, res: Response) {
           where: { id },
           data: { name, surname, email, address, phone, gender, username },
       });
-
       res.status(200).json(updatedUser);
   } catch (error) {
       console.error("Error updating user profile:", error);
