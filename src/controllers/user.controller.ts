@@ -174,7 +174,7 @@ async function sendReport(req: Request, res: Response) {
             },
             To: [
               {
-                Email: "gunesbolcelik@outlook.com"
+                Email: "bayramdikmenn@gmail.com"
               }
             ],
             Subject: `Complaint Type: ${type}`,

@@ -204,7 +204,7 @@ export const isFollowing = async (req: Request, res: Response): Promise<void> =>
     }
   };
   
-export const getSuggestedUsers = async (req: Request, res: Response): Promise<void> => {
+  export const getSuggestedUsers = async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.userId;
   
     if (!userId) {
@@ -219,16 +219,15 @@ export const getSuggestedUsers = async (req: Request, res: Response): Promise<vo
       });
   
       const followedIds = followed.map(f => f.followingId);
-      followedIds.push(userId); // kendini de hariç tut
+      followedIds.push(userId); 
   
-      // Önerilecek aday sayısını bul
       const totalCount = await prisma.user.count({
         where: { id: { notIn: followedIds } },
       });
   
-      const randomSkip = Math.floor(Math.random() * Math.max(totalCount - 5, 0)); // rastgele başlangıç
+      const randomSkip = Math.floor(Math.random() * Math.max(totalCount - 5, 0));
   
-      const suggestedUsers = await prisma.user.findMany({
+      const suggestedUsersRaw = await prisma.user.findMany({
         where: {
           id: { notIn: followedIds },
         },
@@ -237,10 +236,26 @@ export const getSuggestedUsers = async (req: Request, res: Response): Promise<vo
           name: true,
           surname: true,
           avatar: true,
+          username: true,
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
         },
         skip: randomSkip,
         take: 5,
       });
+  
+      // 🔧 _count içindeki followers'ı temiz bir şekilde mapleyip dönüyoruz
+      const suggestedUsers = suggestedUsersRaw.map(user => ({
+        id: user.id,
+        name: user.name,
+        surname: user.surname,
+        avatar: user.avatar,
+        username: user.username,
+        followersCount: user._count.followers, // temiz şekilde yeni key
+      }));
   
       res.status(200).json(suggestedUsers);
     } catch (error) {
@@ -248,5 +263,32 @@ export const getSuggestedUsers = async (req: Request, res: Response): Promise<vo
       res.status(500).json({ error: "Sunucu hatası" });
     }
   };
+  
+  
+  
+  export const getFollowStats = async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.userId;
+  
+    if (!userId) {
+      res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
+      return;
+    }
+  
+    try {
+      const [followersCount, followingCount] = await Promise.all([
+        prisma.follow.count({ where: { followingId: userId } }),
+        prisma.follow.count({ where: { followerId: userId } }),
+      ]);
+  
+      res.status(200).json({
+        followersCount,
+        followingCount,
+      });
+    } catch (error) {
+      console.error("Takip verileri alınırken hata:", error);
+      res.status(500).json({ error: "Sunucu hatası" });
+    }
+  };
+  
   
   
