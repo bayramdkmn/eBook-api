@@ -1,185 +1,422 @@
-import { Request, Response,NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 
-async function addReadingBook(req:Request, res:Response, next:NextFunction) {
-    const { bookTitle, author, genre, description=null,image = null } = req.body;
-    const requesterId = req.user?.userId;
-    if (!requesterId) {
-      res.status(400).json({ error: 'Geçersiz kullanıcı' });
-      return;
-    }
-    console.log("Kitap Başlığı:", bookTitle);
-    console.log("Yazar:", author);
-    console.log("Tür:", genre);
-    if (!bookTitle || !author || !genre) {
-      res.status(400).json({
-        error: "Kitap başlığı, yazar ve tür bilgisi zorunludur.",
-      });
-      return;
-    }
-    
+async function getAllBooks(req: Request, res: Response): Promise<any> {
+  try {
+    const books = await prisma.book.findMany();
+    return res.status(200).json(books);
+  } catch (error: any) {
+    console.error("Kitapları getirirken hata:", error);
+    return res.status(500).json({ error: "Bir hata oluştu." });
+  }
+}
 
-        try {
-      let book = await prisma.book.findFirst({
-        where:{
-          title:{
-            equals:bookTitle,
-            mode:'insensitive'
-          }
-        }
-      })
-      if (!book) {
-        if (!author || !genre || !description) {
-          res.status(400).json({
-            error: 'Kitap veritabanında bulunamadı. Yeni bir kitap eklemek için yazar, tür ve açıklama bilgileri gerekli.',
-          });
-          return;
-        }
-  
-        book = await prisma.book.create({
-          data: {
-            title: bookTitle,
-            author,
-            genre,
-            description,
-            image
-          },
-        }); 
-      }
-      const existingBook = await prisma.readBook.findFirst({
-        where:{
-          userId:requesterId,
-          bookId:book.id
-        }
-      })
-      if(existingBook){
-        res.status(400).json({ error: 'Bu kitap zaten okuma listenizde.' });
-      return;
-      }
-      const newEntry = await prisma.readBook.create({
+async function getReadingBooks(req: Request, res: Response): Promise<any> {
+  const requesterId = req.user?.userId;
+
+  if (!requesterId) {
+    return res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
+  }
+
+  try {
+    const readingList = await prisma.readBook.findMany({
+      where: { userId: requesterId },
+      include: { book: true },
+    });
+
+    return res.status(200).json(readingList.map((entry) => entry.book));
+  } catch (error: any) {
+    console.error("Okuma listesi hatası:", error);
+    return res.status(500).json({ error: "Bir hata oluştu." });
+  }
+}
+
+async function addReadingBook(req: Request, res: Response, next: NextFunction): Promise<any> {
+  const { bookTitle, author, genre, description = "", image = null } = req.body;
+  const requesterId = req.user?.userId;
+
+  if (!requesterId) {
+    return res.status(400).json({ error: 'Geçersiz kullanıcı' });
+  }
+
+  if (!bookTitle || !author || !genre) {
+    return res.status(400).json({
+      error: "Kitap başlığı, yazar ve tür bilgisi zorunludur.",
+    });
+  }
+
+  try {
+    let book = await prisma.book.findFirst({
+      where: {
+        title: {
+          equals: bookTitle,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    // Kitap bulunamadıysa, ekle ama description olmasa bile sorun etme
+    if (!book) {
+      book = await prisma.book.create({
         data: {
-          userId:requesterId,
-          bookId: book.id,
+          title: bookTitle,
+          author,
+          genre,
+          description: description || "", // null ya da undefined ise boş string
+          image,
         },
       });
-  
-      res.status(201).json({
-        message: 'Kitap başarıyla eklendi.',
-        book,
-        readingList: newEntry,
-      });
+    }
+
+    const existingBook = await prisma.readBook.findFirst({
+      where: {
+        userId: requesterId,
+        bookId: book.id,
+      },
+    });
+
+    if (existingBook) {
+      return res.status(400).json({ error: 'Bu kitap zaten listenizde.' });
+    }
+
+    const newEntry = await prisma.readBook.create({
+      data: {
+        userId: requesterId,
+        bookId: book.id,
+      },
+    });
+
+    return res.status(201).json({
+      message: 'Kitap başarıyla eklendi.',
+      book,
+      readingList: newEntry,
+    });
   } catch (error: any) {
     console.error("Prisma Hatası:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Veritabanı hatası.",
       details: error.message,
     });
   }
-  
 }
 
-async function getSwapBook (req: Request, res: Response){
-    try {
-        const swapRequest = await prisma.swapRequest.findMany({
-            include:{
-                requester:true,
-                offeredBook:true
-            }
-        })
-        res.status(200).json(swapRequest)
-    } catch (err:any) {
-        console.log(err)
-        res.status(500).json({ error: 'Bir hata oluştu' });
-
-    }
-}
-
-
-// Takas talebi oluşturma
-async function createSwapRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { content, bookTitle, status = 'pending' } = req.body;
+async function addReadingBookById(req: Request, res: Response, next: NextFunction): Promise<any> {
+  const { bookId } = req.body;
   const requesterId = req.user?.userId;
-  console.log("kitap adı: ",bookTitle)
   if (!requesterId) {
-    res.status(400).json({ error: 'Geçersiz kullanıcı' });
-    return;  
+    return res.status(400).json({ error: 'Geçersiz kullanıcı' });
+  }
+  try {
+    const existingBook = await prisma.readBook.findFirst({
+      where: {
+        userId: requesterId,
+        bookId: bookId,
+      },
+    });
+    if (existingBook) {
+      return res.status(400).json({ error: 'Bu kitap zaten listenizde.' });
+    }
+    const newEntry = await prisma.readBook.create({
+      data: {
+        userId: requesterId,
+        bookId: bookId,
+      },
+    });
+    return res.status(201).json({
+      message: 'Kitap başarıyla eklendi.',
+      readingList: newEntry,
+    });
+  } catch (error: any) {
+    console.error("Prisma Hatası:", error);
+    return res.status(500).json({
+      error: "Veritabanı hatası.",
+      details: error.message,
+    });
+  }
+}
+
+async function deleteReadingBook(req: Request, res: Response): Promise<void> {
+  const requesterId = req.user?.userId;
+  const { bookId } = req.params;
+
+  if (!requesterId) {
+     res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
   }
 
   try {
-    const offeredBook = await prisma.book.findMany({
-      where:{
-        title:{
+    await prisma.readBook.delete({
+      where: {
+        userId_bookId: {
+          userId: requesterId,
+          bookId: bookId,
+        },
+      },
+    });
+
+     res.status(200).json({ message: "Kitap başarıyla silindi." });
+  } catch (err: any) {
+    console.error("Silme hatası:", err);
+     res.status(500).json({ error: "Kitap silinirken bir hata oluştu." });
+  }
+}
+
+async function getSwapBook(req: Request, res: Response): Promise<any> {
+  try {
+    const swapRequests = await prisma.swapRequest.findMany({
+      include: {
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        offeredBook: true,
+      },
+    });
+
+    return res.status(200).json(swapRequests);
+  } catch (err: any) {
+    console.error("Swap listesi hatası:", err);
+    return res.status(500).json({ error: 'Bir hata oluştu' });
+  }
+}
+
+async function createSwapRequest(req: Request, res: Response, next: NextFunction): Promise<any> {
+  const { content, bookTitle, status = 'pending' } = req.body;
+  const requesterId = req.user?.userId;
+
+  if (!requesterId) {
+    return res.status(400).json({ error: 'Geçersiz kullanıcı' });
+  }
+
+  try {
+    const offeredBook = await prisma.book.findFirst({
+      where: {
+        title: {
           equals: bookTitle,
-          mode: 'insensitive'
-        }
-      }
-    })
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (!offeredBook) {
+      return res.status(404).json({ error: 'Kitap bulunamadı.' });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: requesterId },
       select: {
         id: true,
         email: true,
-        username: true, 
+        username: true,
       },
     });
-    const offeredBookName = offeredBook[0];
 
     if (!user) {
-      res.status(404).json({ error: 'Kullanıcı bulunamadı' });
-      return;  
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
     }
 
-    // Swap isteği oluşturuluyor
     const newSwapRequest = await prisma.swapRequest.create({
       data: {
         content,
         requesterId,
-        offeredBookId:offeredBookName?.id,
+        offeredBookId: offeredBook.id,
         status,
       },
     });
 
-    // Swap isteği ve kullanıcı bilgileri ile birlikte döndürme islemi
-    res.status(200).json({
+    return res.status(200).json({
       swapRequest: newSwapRequest,
-      user: user,  
+      user,
+    });
+  } catch (err: any) {
+    console.error("Swap request hatası:", err);
+    return res.status(500).json({ error: 'Bir hata oluştu' });
+  }
+}
+
+async function updateSwapRequestStatus(req: Request, res: Response): Promise<any> {
+  const { swapRequestId } = req.params;
+  const { status } = req.body;
+
+  try {
+    const updatedSwapRequest = await prisma.swapRequest.update({
+      where: { id: swapRequestId },
+      data: { status },
     });
 
-    console.log("Swap request başarılı",newSwapRequest,user);
-
+    return res.status(200).json(updatedSwapRequest);
   } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: 'Bir hata oluştu' });
-    next(err); 
+    console.error("Swap durumu güncellenemedi:", err);
+    return res.status(500).json({ error: 'Bir hata oluştu' });
   }
-};
-
-
-
-  // Takas talebinin durumunu güncelleme
-async function updateSwapRequestStatus(req: Request, res: Response) {
-    const { swapRequestId } = req.params;
-    const { status } = req.body; // 'pending', 'accepted', 'rejected'
-  
-    try {
-      // Durumu güncellenen takas talebini buluyoruz
-      const updatedSwapRequest = await prisma.swapRequest.update({
-        where: { id: swapRequestId },
-        data: { status },
-      });
-  
-      // Güncellenmiş takas talebini döndürüyoruz
-      res.status(200).json(updatedSwapRequest);
-    } catch (err: any) {
-      console.error(err);
-      res.status(500).json({ error: 'Bir hata oluştu' });
-    }
-  }
-  
-
-  export default {
-    addReadingBook,
-    createSwapRequest,
-    updateSwapRequestStatus,
-    getSwapBook
 }
+
+async function getWishBooks(req: Request, res: Response): Promise<any> {
+  const requesterId = req.user?.userId;
+
+  if (!requesterId) {
+    return res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
+  }
+
+  try {
+    const wishList = await prisma.wishList.findMany({
+      where: { userId: requesterId },
+      include: { book: true },
+    });
+
+    return res.status(200).json(wishList.map((entry) => entry.book));
+  } catch (error: any) {
+    console.error("Wish list hatası:", error);
+    return res.status(500).json({ error: "Bir hata oluştu." });
+  }
+}
+
+async function addWishBook(req: Request, res: Response, next: NextFunction): Promise<any> {
+  const { bookTitle, author, genre, description = "", image = null } = req.body;
+  const requesterId = req.user?.userId;
+
+  if (!requesterId) {
+    return res.status(400).json({ error: 'Geçersiz kullanıcı' });
+  }
+
+  if (!bookTitle || !author || !genre) {
+    return res.status(400).json({
+      error: "Kitap başlığı, yazar ve tür bilgisi zorunludur.",
+    });
+  }
+
+  try {
+    let book = await prisma.book.findFirst({
+      where: {
+        title: {
+          equals: bookTitle,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (!book) {
+      book = await prisma.book.create({
+        data: {
+          title: bookTitle,
+          author,
+          genre,
+          description: description || "", 
+          image,
+        },
+      });
+    }
+
+    const existingBook = await prisma.wishList.findFirst({
+      where: {
+        userId: requesterId,
+        bookId: book.id,
+      },
+    });
+
+    if (existingBook) {
+      return res.status(400).json({ error: 'Bu kitap zaten listenizde.' });
+    }
+
+    const newEntry = await prisma.wishList.create({
+      data: {
+        userId: requesterId,
+        bookId: book.id,
+      },
+    });
+
+    return res.status(201).json({
+      message: 'Kitap başarıyla eklendi.',
+      book,
+      wishList: newEntry,
+    });
+  } catch (error: any) {
+    console.error("Prisma Hatası:", error);
+    return res.status(500).json({
+      error: "Veritabanı hatası.",
+      details: error.message,
+    });
+  }
+}
+
+async function addWishBookById(req: Request, res: Response, next: NextFunction): Promise<any> {
+  const { bookId } = req.body;
+  const requesterId = req.user?.userId;
+  if (!requesterId) {
+    return res.status(400).json({ error: 'Geçersiz kullanıcı' });
+  }
+  try {
+    const existingBook = await prisma.wishList.findFirst({
+      where: {
+        userId: requesterId,
+        bookId: bookId,
+      },
+    });
+    if (existingBook) {
+      return res.status(400).json({ error: 'Bu kitap zaten listenizde.' });
+    }
+    const newEntry = await prisma.wishList.create({
+      data: {
+        userId: requesterId,
+        bookId: bookId,
+      },
+    });
+    return res.status(201).json({
+      message: 'Kitap başarıyla eklendi.',
+      wishList: newEntry,
+    });
+  } catch (error: any) {
+    console.error("Prisma Hatası:", error);
+    return res.status(500).json({
+      error: "Veritabanı hatası.",
+      details: error.message,
+    });
+  }
+}
+
+
+async function deleteWishBook(req: Request, res: Response): Promise<void> {
+  const requesterId = req.user?.userId;
+  const { bookId } = req.params;
+
+  if (!requesterId) {
+     res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
+  }
+
+  try {
+    await prisma.wishList.delete({
+      where: {
+        userId_bookId: {
+          userId: requesterId,
+          bookId: bookId,
+        },
+      },
+    });
+
+     res.status(200).json({ message: "Kitap başarıyla silindi." });
+  } catch (err: any) {
+    console.error("Silme hatası:", err);
+     res.status(500).json({ error: "Kitap silinirken bir hata oluştu." });
+  }
+}
+
+
+
+export default {
+  addReadingBook,
+  addWishBook,
+  createSwapRequest,
+  addWishBookById,
+  deleteWishBook,
+  getAllBooks,
+  getReadingBooks,
+  deleteReadingBook,
+  addReadingBookById,
+  updateSwapRequestStatus,
+  getSwapBook,
+  getWishBooks
+};

@@ -49,6 +49,8 @@ model ReadBook {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   book      Book     @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId], name: "userId_bookId")
 }
 
 model WishList {
@@ -58,6 +60,8 @@ model WishList {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   book      Book     @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId], name: "userId_bookId")
 }
 
 model Book {
@@ -65,7 +69,7 @@ model Book {
   title        String
   author       String
   genre        String
-  description  String
+  description  String?
   image        String?
   swapRequests SwapRequest[]
   users        User[]

@@ -41,45 +41,46 @@ export const getDiscoverFollow = async (req: Request, res: Response): Promise<vo
 };
 
 export const followUser = async (req: Request, res: Response): Promise<void> => {
-    const followerId = req.user?.userId;
-    const { followingId } = req.body;
-  
-    if (!followerId || !followingId) {
-      res.status(400).json({ error: "Eksik bilgi" });
+  const followerId = req.user?.userId;
+  const { followingId } = req.params; 
+
+  if (!followerId || !followingId) {
+    res.status(400).json({ error: "Eksik bilgi" });
+    return;
+  }
+
+  if (followerId === followingId) {
+    res.status(400).json({ error: "Kendini takip edemezsin" });
+    return;
+  }
+
+  try {
+    const existingFollow = await prisma.follow.findFirst({
+      where: {
+        followerId,
+        followingId,
+      },
+    });
+
+    if (existingFollow) {
+      res.status(400).json({ error: "Zaten takip ediyorsun" });
       return;
     }
-  
-    if (followerId === followingId) {
-      res.status(400).json({ error: "Kendini takip edemezsin" });
-      return;
-    }
-  
-    try {
-      const existingFollow = await prisma.follow.findFirst({
-        where: {
-          followerId,
-          followingId,
-        },
-      });
-  
-      if (existingFollow) {
-        res.status(400).json({ error: "Zaten takip ediyorsun" });
-        return;
-      }
-  
-      await prisma.follow.create({
-        data: {
-          followerId,
-          followingId,
-        },
-      });
-  
-      res.status(200).json({ message: "Takip edildi" });
-    } catch (err) {
-      console.error("Takip hatası:", err);
-      res.status(500).json({ error: "Sunucu hatası" });
-    }
+
+    await prisma.follow.create({
+      data: {
+        followerId,
+        followingId,
+      },
+    });
+
+    res.status(200).json({ message: "Takip edildi" });
+  } catch (err) {
+    console.error("Takip hatası:", err);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
 };
+
   
 export const unfollowUser = async (req: Request, res: Response): Promise<void> => {
     const followerId = req.user?.userId;

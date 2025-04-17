@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import UserRouter from "./routes/user.route"
 import swapBooksRouter from "./routes/swapBook.route"
+import readingBooksRouter from "./routes/readingBooks.route"
 import followRouter from "./routes/follow.route"
 import userPostRouter from "./routes/userPost.route"
-import { authenticateToken } from './middlewares/authenticateToken';
+import wishBooksRouter from "./routes/wishBooks.route"
+import booksRouter from "./routes/books.route"
 
 const app = express();
 const cors = require('cors');
@@ -19,9 +21,11 @@ const server = http.createServer(app);
 async function main() {
   app.use('/api/user', UserRouter);
   app.use('/api/swapRequest', swapBooksRouter)
-  app.use('/api/readingBooks',swapBooksRouter)
   app.use('/api/userPosts', userPostRouter); 
   app.use('/api/follow', followRouter);
+  app.use('/api/readingBooks', readingBooksRouter);
+  app.use('/api/wishBooks', wishBooksRouter);
+  app.use('/api/books', booksRouter)
   // app.use('/api/event', EventRouter);
   // app.use('/api/messages', MessagesRouter);
 

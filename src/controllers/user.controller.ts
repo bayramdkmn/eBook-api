@@ -60,7 +60,7 @@ async function loginUser(req: Request, res: Response) {
             console.log(token);
             res.json({
                 token,
-                requesterId: user.id  // Burada user.id'yi `requesterId` olarak döndürüyoruz
+                requesterId: user.id  
             });
         } else {
             res.status(401).json({ error: 'Invalid credentials' });

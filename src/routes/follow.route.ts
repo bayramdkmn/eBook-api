@@ -14,7 +14,7 @@ import { authenticateToken } from "../middlewares/authenticateToken";
 const router = express.Router();
 
 router.get("/", authenticateToken, getDiscoverFollow);
-router.post("/", authenticateToken, followUser);
+router.post("/:followingId", authenticateToken, followUser);
 router.delete("/:userId", authenticateToken, unfollowUser);
 router.get("/following", authenticateToken, getFollowing);
 router.get("/followers", authenticateToken, getFollowers);
