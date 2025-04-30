@@ -30,6 +30,7 @@ model User {
   wishList              WishList[]
   following             Follow[]      @relation("FollowingRelation")
   followers             Follow[]      @relation("FollowerRelation")
+  Appointment           Appointment[]
 }
 
 model Posts {
@@ -75,6 +76,7 @@ model Book {
   users        User[]
   readBooks    ReadBook[]
   wishLists    WishList[]
+  LibraryBook  LibraryBook[]
 }
 
 model SwapRequest {
@@ -108,4 +110,40 @@ model Follow {
 
   follower  User @relation("FollowerRelation", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("FollowingRelation", fields: [followingId], references: [id], onDelete: Cascade)
+}
+
+model LibraryBook {
+  id        String @id @default(cuid())
+  libraryId String
+  bookId    String
+  quantity  Int
+
+  library     Library       @relation(fields: [libraryId], references: [id])
+  book        Book          @relation(fields: [bookId], references: [id])
+  Appointment Appointment[]
+
+  @@unique([libraryId, bookId])
+}
+
+model Appointment {
+  id            String   @id @default(cuid())
+  userId        String
+  libraryBookId String
+  startTime     DateTime
+  endTime       DateTime
+  status        String
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  libraryBook LibraryBook @relation(fields: [libraryBookId], references: [id])
+  cancelledAt DateTime?
+}
+
+model Library {
+  id        String        @id @default(cuid())
+  name      String
+  address   String
+  latitude  Float
+  longitude Float
+  books     LibraryBook[]
 }
