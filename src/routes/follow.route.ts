@@ -7,7 +7,8 @@ import {
   isFollowing,
   unfollowUser,
   getSuggestedUsers, 
-  getFollowStats
+  getFollowStats,
+  getSuggestedUsersPagination
 } from "../controllers/follow.controller";
 import { authenticateToken } from "../middlewares/authenticateToken";
 
@@ -20,6 +21,7 @@ router.get("/following", authenticateToken, getFollowing);
 router.get("/followers", authenticateToken, getFollowers);
 router.get("/is-following/:userId", authenticateToken, isFollowing);
 router.get("/suggestions", authenticateToken, getSuggestedUsers);
+router.get("/suggestionsPagination", authenticateToken, getSuggestedUsersPagination);
 router.get("/stats", authenticateToken, getFollowStats);
 
 

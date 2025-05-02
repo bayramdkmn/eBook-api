@@ -204,7 +204,7 @@ export const isFollowing = async (req: Request, res: Response): Promise<void> =>
       res.status(500).json({ error: "Sunucu hatası" });
     }
   };
-  
+
   export const getSuggestedUsers = async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.userId;
   
@@ -264,6 +264,75 @@ export const isFollowing = async (req: Request, res: Response): Promise<void> =>
       res.status(500).json({ error: "Sunucu hatası" });
     }
   };
+  
+  export const getSuggestedUsersPagination = async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.userId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 5;
+  
+    if (!userId) {
+      res.status(401).json({ error: "Kullanıcı doğrulanamadı." });
+      return;
+    }
+  
+    try {
+      // Önce takip ettiklerini ve kendisini çıkar
+      const followed = await prisma.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      });
+  
+      const followedIds = followed.map(f => f.followingId);
+      followedIds.push(userId); // Kendini de çıkar
+  
+      const totalCount = await prisma.user.count({
+        where: { id: { notIn: followedIds } },
+      });
+  
+      const totalPages = Math.ceil(totalCount / limit);
+      const skip = (page - 1) * limit;
+  
+      const suggestedUsersRaw = await prisma.user.findMany({
+        where: {
+          id: { notIn: followedIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          avatar: true,
+          username: true,
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+      });
+  
+      const suggestedUsers = suggestedUsersRaw.map(user => ({
+        id: user.id,
+        name: user.name,
+        surname: user.surname,
+        avatar: user.avatar,
+        username: user.username,
+        followersCount: user._count.followers,
+      }));
+  
+      res.status(200).json({
+        page,
+        totalPages,
+        totalCount,
+        users: suggestedUsers,
+      });
+    } catch (error) {
+      console.error("Önerilen kullanıcılar alınırken hata:", error);
+      res.status(500).json({ error: "Sunucu hatası" });
+    }
+  };
+  
   
   
   

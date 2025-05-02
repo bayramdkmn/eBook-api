@@ -120,6 +120,106 @@ const AppointmentController = {
       console.error("cancelAppointment error:", error);
       res.status(500).json({ error: "Randevu iptal edilemedi." });
     }
+  },
+  async getUserPastAppointments(req: Request, res: Response) {
+    const { userId } = req.params;
+  
+    if (!userId) {
+      res.status(400).json({ error: "Kullanıcı ID'si eksik." });
+    }
+  
+    try {
+      const now = new Date();
+  
+      const pastAppointments = await prisma.appointment.findMany({
+        where: {
+          userId,
+          endTime: { lt: now },
+          status: { not: "cancelled" },
+        },
+        orderBy: {
+          startTime: "desc",
+        },
+        include: {
+          libraryBook: {
+            include: {
+              library: true,
+              book: true,
+            },
+          },
+        },
+      });
+  
+      res.json(pastAppointments);
+    } catch (error) {
+      console.error("getUserPastAppointments error:", error);
+      res.status(500).json({ error: "Geçmiş randevular alınamadı." });
+    }
+  },
+  async getUserUpcomingAppointments(req: Request, res: Response) {
+    const { userId } = req.params;
+  
+    if (!userId) {
+      res.status(400).json({ error: "Kullanıcı ID'si eksik." });
+    }
+  
+    try {
+      const now = new Date();
+  
+      const upcomingAppointments = await prisma.appointment.findMany({
+        where: {
+          userId,
+          startTime: { gte: now },
+          status: { not: "cancelled" },
+        },
+        orderBy: { startTime: "asc" },
+        include: {
+          libraryBook: {
+            include: {
+              book: true,
+              library: true,
+            },
+          },
+        },
+      });
+  
+      res.json(upcomingAppointments);
+    } catch (error) {
+      console.error("getUserUpcomingAppointments error:", error);
+      res.status(500).json({ error: "Yaklaşan randevular alınamadı." });
+    }
+  },
+  async getUserCancelledAppointments(req: Request, res: Response) {
+    const { userId } = req.params;
+  
+    if (!userId) {
+      res.status(400).json({ error: "Kullanıcı ID'si eksik." });
+    }
+  
+    try {
+      const cancelledAppointments = await prisma.appointment.findMany({
+        where: {
+          userId,
+          status: "cancelled",
+        },
+        orderBy: {
+          cancelledAt: "desc",
+        },
+        include: {
+          libraryBook: {
+            include: {
+              library: true,
+              book: true,
+            },
+          },
+        },
+      });
+  
+      res.json(cancelledAppointments);
+    } catch (error) {
+      console.error("getUserCancelledAppointments error:", error);
+      res.status(500).json({ error: "İptal edilen randevular alınamadı." });
+    }
   }
   
   

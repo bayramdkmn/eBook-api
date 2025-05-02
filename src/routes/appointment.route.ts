@@ -6,6 +6,9 @@ const router = express.Router();
 
 router.post('/', authenticateToken, AppointmentController.createAppointment);
 router.get('/', authenticateToken, AppointmentController.getAppointmentsForLibraryBook);
-router.put('/cancel/:appointmentId', AppointmentController.cancelAppointment);
+router.patch('/cancel/:appointmentId', authenticateToken, AppointmentController.cancelAppointment);
+router.get("/past/:userId", authenticateToken,AppointmentController.getUserPastAppointments);
+router.get("/upcoming/:userId",authenticateToken, AppointmentController.getUserUpcomingAppointments);
+router.get("/cancelled/:userId", authenticateToken,AppointmentController.getUserCancelledAppointments);
 
 export default router;
