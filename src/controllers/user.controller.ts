@@ -38,7 +38,13 @@ async function createUser(req: Request, res: Response){
 
 async function loginUser(req: Request, res: Response) {
     try {
-        console.log("Login attempt started");
+        console.log("Login attempt started with body:", req.body);
+        
+        if (!req.body || typeof req.body !== 'object') {
+            console.error("Invalid request body:", req.body);
+            return res.status(400).json({ error: "Invalid request body" });
+        }
+
         const { email, password } = req.body;
         
         if (!email || !password) {
@@ -56,6 +62,11 @@ async function loginUser(req: Request, res: Response) {
                     { username: email }
                 ]
             },
+            select: {
+                id: true,
+                email: true,
+                password: true
+            }
         });
         
         console.log(user);
