@@ -24,35 +24,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const port = process.env.PORT || 3000;
 
-// Global error handler
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error('Global Error Handler:', {
-    error: err,
-    body: req.body,
-    path: req.path,
-    method: req.method
-  });
-  
-  if (err instanceof SyntaxError) {
-    return res.status(400).json({ 
-      error: 'Invalid JSON',
-      details: err.message 
-    });
-  }
-  
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({ 
-      error: 'Invalid request body',
-      details: err.message 
-    });
-  }
-  
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-});
-
 async function main() {
   app.use('/api/user', UserRouter);
   app.use('/api/swapRequest', swapBooksRouter)

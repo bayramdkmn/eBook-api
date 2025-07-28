@@ -38,10 +38,19 @@ async function createUser(req: Request, res: Response){
 
 async function loginUser(req: Request, res: Response) {
     try {
-        console.log("Login attempt started with body:", req.body);
+        console.log("Login attempt started");
+        console.log("Headers:", req.headers);
+        console.log("Body:", req.body);
+        console.log("Content-Type:", req.headers['content-type']);
+        console.log("Query:", req.query);
+        console.log("Params:", req.params);
         
         if (!req.body || typeof req.body !== 'object') {
-            console.error("Invalid request body:", req.body);
+            console.error("Invalid request body:", {
+                body: req.body,
+                type: typeof req.body,
+                contentType: req.headers['content-type']
+            });
             return res.status(400).json({ error: "Invalid request body" });
         }
 
