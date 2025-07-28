@@ -7,8 +7,8 @@ const mailjet = require ('node-mailjet')
 const otpStorage: { [email: string]: string } = {};
 
 const mj = mailjet.apiConnect(
-    '50431a90b75721edc308d1b596a53152', 
-    'd3e6ae20ba56ec25aa2b1f3e1288ad6a'
+    process.env.MAILJET_API_KEY, 
+    process.env.MAILJET_SECRET_KEY
   );
 
 async function createUser(req: Request, res: Response){
