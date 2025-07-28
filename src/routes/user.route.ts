@@ -7,6 +7,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const router = express.Router();
 
 
+router.get("/health", (req, res) => {
+    res.json({ 
+        status: "OK", 
+        database_url: process.env.DATABASE_URL ? "EXISTS" : "MISSING",
+        jwt_secret: process.env.JWT_SECRET ? "EXISTS" : "MISSING"
+    });
+});
+
 router.post("/",UserController.createUser)
 router.post("/login",UserController.loginUser)
 router.post("/sendMail",UserController.sendMail)
