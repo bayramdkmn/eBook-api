@@ -1,4 +1,5 @@
 import express from 'express';
+import type { Request, Response } from 'express';
 import UserController from '../controllers/user.controller';
 
 const jwt = require('jsonwebtoken');
@@ -15,15 +16,15 @@ router.get("/health", (req, res) => {
     });
 });
 
-router.post("/",UserController.createUser)
-router.post("/login",UserController.loginUser)
-router.post("/sendMail",UserController.sendMail)
-router.post("/checkCode",UserController.checkCode)
-router.post("/resetPassword",UserController.resetPassword)
-router.post("/sendReport",UserController.sendReport)
-router.get("/getUserById/:id", UserController.getUserById);
-router.put("/updateProfile/:id", UserController.updateUserProfile);
-router.put("/updatePassword/:id", UserController.updatePassword); 
+router.post("/", UserController.createUser as express.RequestHandler)
+router.post("/login", UserController.loginUser as express.RequestHandler)
+router.post("/sendMail", UserController.sendMail as express.RequestHandler)
+router.post("/checkCode", UserController.checkCode as express.RequestHandler)
+router.post("/resetPassword", UserController.resetPassword as express.RequestHandler)
+router.post("/sendReport", UserController.sendReport as express.RequestHandler)
+router.get("/getUserById/:id", UserController.getUserById as express.RequestHandler)
+router.put("/updateProfile/:id", UserController.updateUserProfile as express.RequestHandler)
+router.put("/updatePassword/:id", UserController.updatePassword as express.RequestHandler); 
 
 
 export default router;

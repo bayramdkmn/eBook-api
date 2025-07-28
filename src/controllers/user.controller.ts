@@ -38,9 +38,16 @@ async function createUser(req: Request, res: Response){
 
 async function loginUser(req: Request, res: Response) {
     try {
+        console.log("Login attempt started");
         const { email, password } = req.body;
+        
+        if (!email || !password) {
+            console.log("Missing credentials:", { email: !!email, password: !!password });
+            return res.status(400).json({ error: "Email and password are required" });
+        }
 
-        console.log(email, ",", password);
+        console.log("Attempting database connection...");
+        console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
         
         const user = await prisma.user.findFirst({
             where: {
@@ -66,8 +73,22 @@ async function loginUser(req: Request, res: Response) {
             res.status(401).json({ error: 'Invalid credentials' });
         }
     } catch (err: any) {
-        console.error(err);
-        res.status(500).json({ error: 'Something went wrong' });
+        console.error("Login error details:", err);
+        
+        // Prisma specific errors
+        if (err.code === 'P2021') {
+            return res.status(500).json({ error: 'Database connection error' });
+        } 
+        
+        if (err.code === 'P2002') {
+            return res.status(500).json({ error: 'Database constraint error' });
+        }
+        
+        // Generic error with more details in development
+        return res.status(500).json({ 
+            error: 'Something went wrong',
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
     }
 }
 
