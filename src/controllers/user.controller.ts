@@ -38,76 +38,78 @@ async function createUser(req: Request, res: Response){
 
 async function loginUser(req: Request, res: Response) {
     try {
-        console.log("Login attempt started");
-        console.log("Headers:", req.headers);
-        console.log("Body:", req.body);
-        console.log("Content-Type:", req.headers['content-type']);
-        console.log("Query:", req.query);
-        console.log("Params:", req.params);
-        
-        if (!req.body || typeof req.body !== 'object') {
-            console.error("Invalid request body:", {
-                body: req.body,
-                type: typeof req.body,
-                contentType: req.headers['content-type']
+        if (!process.env.DATABASE_URL) {
+            return res.status(500).json({ 
+                error: 'Database configuration missing',
+                details: 'DATABASE_URL is not configured'
             });
-            return res.status(400).json({ error: "Invalid request body" });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            return res.status(500).json({ 
+                error: 'JWT configuration missing',
+                details: 'JWT_SECRET is not configured'
+            });
         }
 
         const { email, password } = req.body;
         
         if (!email || !password) {
-            console.log("Missing credentials:", { email: !!email, password: !!password });
-            return res.status(400).json({ error: "Email and password are required" });
+            return res.status(400).json({ 
+                error: 'Missing credentials',
+                details: 'Email and password are required'
+            });
         }
 
-        console.log("Attempting database connection...");
-        console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
-        
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
                     { email: email },
                     { username: email }
                 ]
-            },
-            select: {
-                id: true,
-                email: true,
-                password: true
             }
         });
-        
-        console.log(user);
 
-        if (user && (await bcrypt.compare(password, user.password))) {
-            console.log("Token oluşturuluyor");
-
-            const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
-            console.log(token);
-            res.json({
-                token,
-                requesterId: user.id  
+        if (!user) {
+            return res.status(401).json({ 
+                error: 'Authentication failed',
+                details: 'User not found'
             });
-        } else {
-            res.status(401).json({ error: 'Invalid credentials' });
         }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        
+        if (!isPasswordValid) {
+            return res.status(401).json({ 
+                error: 'Authentication failed',
+                details: 'Invalid password'
+            });
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, email: user.email }, 
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        res.json({
+            token,
+            requesterId: user.id
+        });
+
     } catch (err: any) {
-        console.error("Login error details:", err);
+        console.error('Login error:', err);
         
-        // Prisma specific errors
         if (err.code === 'P2021') {
-            return res.status(500).json({ error: 'Database connection error' });
-        } 
-        
-        if (err.code === 'P2002') {
-            return res.status(500).json({ error: 'Database constraint error' });
+            return res.status(500).json({ 
+                error: 'Database error',
+                details: 'Cannot connect to database'
+            });
         }
         
-        // Generic error with more details in development
         return res.status(500).json({ 
-            error: 'Something went wrong',
-            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
         });
     }
 }

@@ -1,15 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 
-let prisma: PrismaClient;
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.POSTGRES_URL
+    },
+  },
+});
 
-if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient();
-} else {
-  if (!(global as any).prisma) {
-    (global as any).prisma = new PrismaClient();
-  }
-
-  prisma = (global as any).prisma;
-}
+// Test the connection
+prisma.$connect()
+  .then(() => {
+    console.log('Successfully connected to database');
+  })
+  .catch((e) => {
+    console.error('Failed to connect to database:', e);
+  });
 
 export default prisma;
