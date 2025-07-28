@@ -13,10 +13,24 @@ const app = express();
 const cors = require('cors');
 const http = require('http');
 
-app.use(cors());
+app.use(cors({
+  origin: ['https://e-book-web-ebon.vercel.app', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const port = process.env.PORT || 3000;
+
+app.use((err: any, req: Request, res: Response, next: any) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
 
 async function main() {
   app.use('/api/user', UserRouter);
@@ -29,15 +43,18 @@ async function main() {
   app.use('/api/library', libraryBooksRouter);
   app.use('/api/appointment', appointmentRouter)
 
+  app.get('/health', (req: Request, res: Response) => {
+    res.status(200).json({ status: 'OK' });
+  });
+
   app.all('*', (req: Request, res: Response) => {
     res.status(404).json({ error: `Route ${req.originalUrl} not found` });
   });
 
   app.listen(port, () => {
     console.log(`Server is listening on port ${port}`);
+    console.log('CORS enabled for:', ['https://e-book-web-ebon.vercel.app', 'http://localhost:3000']);
   });
-  
-  
 }
 
-main();
+main().catch(console.error);
