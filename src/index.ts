@@ -26,7 +26,7 @@ app.use(cors({
     ];
     
     // Origin yoksa (Postman, curl gibi) veya allowed listesindeyse izin ver
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || (origin && allowedOrigins.includes(origin))) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -50,7 +50,7 @@ app.use((req, res, next) => {
     'http://127.0.0.1:3001'
   ];
   
-  if (allowedOrigins.includes(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (!origin) {
     res.setHeader('Access-Control-Allow-Origin', '*');
