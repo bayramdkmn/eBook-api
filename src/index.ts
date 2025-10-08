@@ -14,7 +14,7 @@ const cors = require('cors');
 const http = require('http');
 
 app.use(cors({
-  origin: ['https://e-book-web-ebon.vercel.app', 'http://localhost:3000'],
+  origin: ['https://e-book-web-ebon.vercel.app', 'http://localhost:3000', 'http://localhost:3001'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -45,7 +45,8 @@ async function main() {
 
   app.listen(port, () => {
     console.log(`Server is listening on port ${port}`);
-    console.log('CORS enabled for:', ['https://e-book-web-ebon.vercel.app', 'http://localhost:3000']);
+    console.log('CORS enabled for:', ['https://e-book-web-ebon.vercel.app', 'http://localhost:3000', 'http://localhost:3001']);
+    
   });
 }
 
