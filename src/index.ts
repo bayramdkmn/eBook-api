@@ -15,7 +15,7 @@ const http = require('http');
 
 // CORS middleware - daha kapsamlı ayarlar
 app.use(cors({
-  origin: function (origin, callback) {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Tüm localhost portlarına ve production domain'e izin ver
     const allowedOrigins = [
       'https://e-book-web-ebon.vercel.app',
